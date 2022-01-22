@@ -2,6 +2,7 @@ package recipes.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
@@ -29,8 +30,7 @@ public class Recipe {
     private String description;
     @NotBlank
     private String category;
-    @NotNull
-    @JsonIgnore
+    @UpdateTimestamp
     private LocalDateTime date;
     @ElementCollection
     @Size(min = 1)

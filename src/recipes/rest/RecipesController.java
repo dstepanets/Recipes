@@ -9,7 +9,8 @@ import recipes.entities.Recipe;
 import recipes.repo.RecipesRepository;
 
 import javax.validation.Valid;
-import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 
 
 @RestController
@@ -28,9 +29,24 @@ public class RecipesController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
+    @GetMapping("/api/recipe/search")
+    public List<Recipe> searchForRecipe(@RequestParam Map<String,String> params) {
+        if (params.size() != 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        }
+        
+        String p;
+        if ((p = params.get("category")) != null) {
+            return recipesRepository.findAllByCategoryIgnoreCaseOrderByDateDesc(p); 
+        } else if ((p = params.get("name")) != null) {
+            return recipesRepository.findAllByNameContainingIgnoreCaseOrderByDateDesc(p);
+        } else {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        }
+    }
+
     @PostMapping(value = "/api/recipe/new")
     public RecipeId addRecipe(@RequestBody @Valid Recipe recipe) {
-        recipe.setDate(LocalDateTime.now());
         return new RecipeId(recipesRepository.save(recipe).getId());
     }
     
@@ -39,7 +55,6 @@ public class RecipesController {
     public void updateRecipe(@PathVariable Long id, @RequestBody @Valid Recipe recipe) {
         if (recipesRepository.existsById(id)) {
             recipe.setId(id);
-            recipe.setDate(LocalDateTime.now());
             recipesRepository.save(recipe);
         } else {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
