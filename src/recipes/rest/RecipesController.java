@@ -1,12 +1,16 @@
 package recipes.rest;
 
-import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import recipes.entities.Recipe;
+import recipes.entities.User;
 import recipes.repo.RecipesRepository;
+import recipes.repo.UsersRepository;
+import recipes.rest.model.RecipeId;
+import recipes.rest.model.UserCredentials;
 
 import javax.validation.Valid;
 import java.util.List;
@@ -17,10 +21,24 @@ import java.util.Map;
 public class RecipesController {
     
     private final RecipesRepository recipesRepository;
+    private final UsersRepository usersRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Autowired
-    public RecipesController(RecipesRepository recipesRepository) {
+    public RecipesController(RecipesRepository recipesRepository, UsersRepository usersRepository, PasswordEncoder passwordEncoder) {
         this.recipesRepository = recipesRepository;
+        this.usersRepository = usersRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    @PostMapping("/api/register")
+    public void registerUser(@RequestBody @Valid UserCredentials credentials) {
+        if (usersRepository.findByEmail(credentials.getEmail()) != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        }
+
+        String encryptedPassword = passwordEncoder.encode(credentials.getPassword());
+        usersRepository.save(new User(credentials.getEmail(), encryptedPassword));
     }
 
     @GetMapping("/api/recipe/{id}")
@@ -45,7 +63,7 @@ public class RecipesController {
         }
     }
 
-    @PostMapping(value = "/api/recipe/new")
+    @PostMapping("/api/recipe/new")
     public RecipeId addRecipe(@RequestBody @Valid Recipe recipe) {
         return new RecipeId(recipesRepository.save(recipe).getId());
     }
@@ -69,10 +87,5 @@ public class RecipesController {
         } else {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
-    }
-    
-    @Data
-    private static class RecipeId {
-        private final Long id;
     }
 }
