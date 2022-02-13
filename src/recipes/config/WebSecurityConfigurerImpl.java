@@ -36,7 +36,7 @@ public class WebSecurityConfigurerImpl extends WebSecurityConfigurerAdapter {
                 .and()
                 .httpBasic()
                 .and()
-                .csrf().disable(); // disabling CSRF will allow sending POST request using Postman; // enables basic auth.
+                .csrf().disable(); // disabling CSRF will allow sending POST request using Postman; 
     }
     
     @Bean

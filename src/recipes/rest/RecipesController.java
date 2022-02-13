@@ -2,6 +2,9 @@ package recipes.rest;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -65,27 +68,37 @@ public class RecipesController {
 
     @PostMapping("/api/recipe/new")
     public RecipeId addRecipe(@RequestBody @Valid Recipe recipe) {
+        recipe.setUser(getAuthenticatedUser());
         return new RecipeId(recipesRepository.save(recipe).getId());
     }
-    
+
     @PutMapping("/api/recipe/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateRecipe(@PathVariable Long id, @RequestBody @Valid Recipe recipe) {
-        if (recipesRepository.existsById(id)) {
-            recipe.setId(id);
-            recipesRepository.save(recipe);
-        } else {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        }
+        checkRecipeExistsAndUserIsAuthor(id);
+        recipe.setId(id);
+        recipe.setUser(getAuthenticatedUser());
+        recipesRepository.save(recipe);
     }
 
     @DeleteMapping("/api/recipe/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteRecipe(@PathVariable Long id) {
-        if (recipesRepository.existsById(id)) {
-            recipesRepository.deleteById(id);
-        } else {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        checkRecipeExistsAndUserIsAuthor(id);
+        recipesRepository.deleteById(id);
+    }
+    
+    private User getAuthenticatedUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        UserDetails userDetails = (UserDetails) auth.getPrincipal();
+        return usersRepository.findByEmail(userDetails.getUsername());
+    }
+    
+    private void checkRecipeExistsAndUserIsAuthor(Long recipeId) {
+        Recipe savedRecipe = recipesRepository.findById(recipeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (!savedRecipe.getUser().equals(getAuthenticatedUser())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
     }
 }

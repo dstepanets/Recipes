@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Table(name = "recepies")
+@Table(name = "recipes")
 @Getter
 @Setter
 @AllArgsConstructor
@@ -40,4 +40,8 @@ public class Recipe {
     @Size(min = 1)
     @NotNull
     private List<String> directions;
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    @JsonIgnore
+    private User user;
 }
